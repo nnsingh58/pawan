@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>भारत भ्रमण/दर्शन योजना</title>
+    <title>भारत भ्रमण/दर्शन योजना (बेसिक - सड़क आधारित)</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        /* पिछले CSS को यहाँ कॉपी करें, कोई बदलाव नहीं */
         * {
             margin: 0;
             padding: 0;
@@ -31,7 +29,6 @@
             border-radius: 10px;
             margin-bottom: 2rem;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            animation: slideIn 0.5s ease;
         }
         .header h1 { font-size: 28px; }
         .header p { font-size: 16px; margin-top: 5px; }
@@ -67,26 +64,13 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
         }
-        button::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            transition: width 0.4s ease, height 0.4s ease;
-        }
-        button:hover::after { width: 200px; height: 200px; }
         .list-btn { background: linear-gradient(45deg, #00c4cc, #007bff); color: white; }
         .list-btn:hover { transform: scale(1.05); }
         .search-btn { background: linear-gradient(45deg, #ff6f61, #ff9f1c); color: white; }
         .search-btn:hover { transform: scale(1.05); }
+        .publish-btn { background: linear-gradient(45deg, #28a745, #20c997); color: white; }
+        .publish-btn:hover { transform: scale(1.05); }
         .danger-btn {
             background: linear-gradient(45deg, #dc3545, #ff6b6b);
             color: white;
@@ -94,13 +78,9 @@
             display: block;
         }
         .danger-btn:hover { transform: scale(1.05); }
-        #map {
-            height: 500px;
-            width: 100%;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 2rem;
-        }
+        .fare-estimate { text-align: center; font-size: 18px; color: #007bff; margin-bottom: 1rem; }
+        .custom-fare { text-align: center; margin-bottom: 2rem; }
+        .custom-fare input { width: 150px; margin-right: 10px; }
         .card-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -116,19 +96,6 @@
             transition: transform 0.3s ease;
         }
         .card-container p:hover { transform: translateY(-5px); }
-        .fare-estimate { text-align: center; font-size: 18px; color: #007bff; margin-bottom: 1rem; }
-        .custom-fare { text-align: center; margin-bottom: 2rem; }
-        .custom-fare input { width: 150px; margin-right: 10px; }
-        .custom-fare button {
-            padding: 10px 20px;
-            background: linear-gradient(45deg, #28a745, #20c997);
-            color: white;
-        }
-        .custom-fare button:hover { transform: scale(1.05); }
-        @keyframes slideIn {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
         @media (max-width: 768px) {
             .search-box { flex-direction: column; align-items: stretch; }
             input { width: 100%; }
@@ -138,22 +105,21 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>भारत भ्रमण/दर्शन योजना</h1>
+            <h1>भारत भ्रमण/दर्शन योजना (बेसिक - सड़क आधारित)</h1>
             <p>अपना रूट चुनें और यात्रा शुरू करें</p>
         </div>
 
         <div class="search-box">
-            <input type="text" id="start" placeholder="🚩 प्रारंभ बस स्टैंड (जैसे: Ghaziabad Bus Stand)">
-            <input type="text" id="end" placeholder="🏁 गंतव्य बस स्टैंड (जैसे: Meerut Bus Stand)">
+            <input type="text" id="start" placeholder="🚩 प्रारंभ (जैसे: Ghaziabad)">
+            <input type="text" id="end" placeholder="🏁 गंतव्य (जैसे: Aligarh)">
             <button onclick="listRide()" class="list-btn">राइड लिस्ट करें</button>
             <button onclick="searchRide()" class="search-btn">राइड खोजें</button>
         </div>
 
-        <div id="map"></div>
         <div id="fare-estimate" class="fare-estimate"></div>
         <div class="custom-fare">
             <input type="number" id="custom-fare" placeholder="अपना किराया सेट करें (₹)">
-            <button onclick="publishRide()">राइड प्रकाशित करें</button>
+            <button onclick="publishRide()" class="publish-btn">राइड प्रकाशित करें</button>
         </div>
         <div id="ride-list" class="card-container"></div>
 
@@ -161,48 +127,12 @@
         <button id="reportBtn" class="danger-btn">आपातकाल रिपोर्ट करें</button>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         // ग्लोबल वैरिएबल्स
-        let map = null;
-        let routeLayer = null;
         let rides = [];
         let rideHistory = [];
         const RATE_PER_KM = 3;
         const AVG_SPEED_KMH = 60;
-
-        // मैप को केवल एक बार शुरू करें
-        function initializeMap() {
-            try {
-                const mapElement = document.getElementById('map');
-                if (!mapElement) throw new Error('मानचित्र का DOM तत्व नहीं मिला');
-                
-                if (!map) {
-                    map = L.map(mapElement).setView([20.5937, 78.9629], 5);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-                        maxZoom: 18,
-                    }).addTo(map);
-                    console.log('मानचित्र सफलतापूर्वक लोड हुआ!');
-                    console.log('मैप की प्रारंभिक स्थिति:', map);
-                }
-            } catch (error) {
-                console.error('मानचित्र लोड करने में त्रुटि:', error);
-                map = null;
-                alert('मानचित्र लोड करने में विफल! कृपया पेज रिफ्रेश करें।');
-            }
-        }
-
-        // मैप की वैधता जाँचें
-        function ensureMap() {
-            if (!map || typeof map.addTo !== 'function' || typeof map.removeLayer !== 'function') {
-                console.error('मैप अमान्य है! पेज रिफ्रेश करें।');
-                alert('मानचित्र अमान्य है। कृपया पेज रिफ्रेश करें।');
-                return null;
-            }
-            console.log('मैप की वर्तमान स्थिति:', map);
-            return map;
-        }
 
         function formatTime(hours) {
             const hrs = Math.floor(hours);
@@ -212,25 +142,30 @@
 
         async function geocode(location) {
             try {
-                let query = location.toLowerCase().includes('bus stand') ? location : `${location} Bus Stand`;
+                let query = location;
                 let response = await fetch(
                     `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`
                 );
                 let data = await response.json();
-                if (!data.length) {
-                    console.log(`बस स्टैंड नहीं मिला, शहर के लिए पुनः प्रयास: ${location}`);
-                    query = location;
-                    response = await fetch(
-                        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`
-                    );
-                    data = await response.json();
-                    if (!data.length) throw new Error(`स्थान नहीं मिला: ${location}`);
-                }
+                if (!data.length) throw new Error(`स्थान नहीं मिला: ${location}`);
                 console.log(`जियोकोडिंग सफल: ${location} -> ${data[0].lat}, ${data[0].lon}`);
                 return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), name: data[0].display_name.split(',')[0] };
             } catch (error) {
                 console.error('जियोकोडिंग त्रुटि:', error);
                 return null;
+            }
+        }
+
+        async function reverseGeocode(lat, lon) {
+            try {
+                const response = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
+                );
+                const data = await response.json();
+                return data.address.city || data.address.town || data.address.village || 'अज्ञात शहर';
+            } catch (error) {
+                console.error('रिवर्स जियोकोडिंग त्रुटि:', error);
+                return 'अज्ञात शहर';
             }
         }
 
@@ -260,12 +195,7 @@
 
             if (!startInput || !endInput) {
                 console.log('प्रारंभ या गंतव्य स्थान खाली है');
-                alert('कृपया प्रारंभ और गंतव्य बस स्टैंड भरें');
-                return { distance: 0, naturalFare: 0, time: 0, cities: [] };
-            }
-
-            if (!ensureMap()) {
-                console.error('मैप उपलब्ध नहीं है, ऑपरेशन रद्द कर रहा हूँ');
+                alert('कृपया प्रारंभ और गंतव्य स्थान भरें');
                 return { distance: 0, naturalFare: 0, time: 0, cities: [] };
             }
 
@@ -280,47 +210,29 @@
             }
 
             try {
-                console.log('मानचित्र की स्थिति जांच: उपलब्ध');
-                if (routeLayer) {
-                    console.log('पिछला रूट हटा रहा हूँ...');
-                    map.removeLayer(routeLayer);
-                    routeLayer = null;
-                }
-
                 console.log('OSRM API कॉल कर रहा हूँ...');
-                const url = `https://router.project-osrm.org/route/v1/driving/${startCoords.lon},${startCoords.lat};${endCoords.lon},${endCoords.lat}?overview=full&annotations=nodes`;
+                const url = `https://router.project-osrm.org/route/v1/driving/${startCoords.lon},${startCoords.lat};${endCoords.lon},${endCoords.lat}?overview=full`;
                 const data = await fetchRouteWithRetry(url);
 
-                const coordinates = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
-                const distance = data.routes[0].distance / 1000; // सड़क-आधारित दूरी
+                const coordinates = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]); // [lat, lon]
+                const distance = data.routes[0].distance / 1000; // सड़क-आधारित दूरी (किमी में)
                 const naturalFare = Math.round(distance * RATE_PER_KM);
                 const time = distance / AVG_SPEED_KMH;
 
-                console.log('OSRM कॉल के बाद मैप की स्थिति:', map);
-                if (!ensureMap()) throw new Error('मैप OSRM कॉल के बाद अनुपलब्ध हो गया');
-                console.log('रूट प्लॉट करने से पहले मैप की स्थिति:', map);
-                routeLayer = L.polyline(coordinates, { color: '#2563eb', weight: 4 }).addTo(map);
-                map.fitBounds(routeLayer.getBounds());
-
                 console.log(`दूरी: ${distance} किमी, प्राकृतिक किराया: ₹${naturalFare}, समय: ${time.toFixed(2)} घंटे`);
 
+                // बीच के मुख्य शहर निकालना
                 const cities = [];
-                const step = Math.floor(coordinates.length / 5);
+                const step = Math.floor(coordinates.length / 5); // रास्ते में 5 बिंदु
                 for (let i = 0; i < coordinates.length; i += step) {
-                    if (!ensureMap()) throw new Error('मैप लूप के दौरान अनुपलब्ध हो गया');
+                    const [lat, lon] = coordinates[i];
                     if (i === 0) {
-                        L.marker([startCoords.lat, startCoords.lon]).addTo(map).bindPopup(startCoords.name).openPopup();
                         cities.push(startCoords.name);
                     } else if (i >= coordinates.length - step) {
-                        L.marker([endCoords.lat, endCoords.lon]).addTo(map).bindPopup(endCoords.name).openPopup();
                         cities.push(endCoords.name);
                     } else {
-                        const coord = coordinates[i];
-                        const city = await reverseGeocode(coord[0], coord[1]);
-                        console.log('रिवर्स जियोकोडिंग के बाद मैप की स्थिति:', map);
-                        if (!ensureMap()) throw new Error('मैप रिवर्स जियोकोडिंग के बाद अनुपलब्ध हो गया');
-                        L.marker(coord).addTo(map).bindPopup(city);
-                        cities.push(city);
+                        const city = await reverseGeocode(lat, lon);
+                        if (!cities.includes(city)) cities.push(city); // डुप्लिकेट हटाएँ
                     }
                 }
 
@@ -331,57 +243,9 @@
                 return { distance, naturalFare, time, cities };
             } catch (error) {
                 console.error('रूट गणना में त्रुटि:', error);
-                alert('रूट गणना में विफल: ' + error.message);
-
-                const airDistance = haversineDistance(startCoords.lat, startCoords.lon, endCoords.lat, endCoords.lon);
-                const naturalFare = Math.round(airDistance * RATE_PER_KM);
-                const time = airDistance / AVG_SPEED_KMH;
-                const cities = [startCoords.name, endCoords.name];
-
-                const fareEstimate = document.getElementById('fare-estimate');
-                fareEstimate.innerHTML = `अनुमानित किराया (फॉलबैक - हवाई दूरी): ₹${naturalFare} | दूरी: ${airDistance.toFixed(2)} किमी | समय: ${formatTime(time)}<br>रास्ते के शहर: ${cities.join(', ')}<br><small>नोट: सड़क दूरी उपलब्ध नहीं, हवाई दूरी का उपयोग किया गया।</small>`;
-                console.log('फॉलबैक किराया DOM में सेट किया गया:', fareEstimate.innerHTML);
-
-                if (ensureMap() && routeLayer) {
-                    console.log('फॉलबैक में पिछला रूट हटा रहा हूँ...');
-                    map.removeLayer(routeLayer);
-                    routeLayer = null;
-                }
-                if (map) {
-                    routeLayer = L.polyline([[startCoords.lat, startCoords.lon], [endCoords.lat, endCoords.lon]], 
-                        { color: '#2563eb', weight: 4 }).addTo(map);
-                    map.fitBounds(routeLayer.getBounds());
-
-                    L.marker([startCoords.lat, startCoords.lon]).addTo(map).bindPopup(startCoords.name).openPopup();
-                    L.marker([endCoords.lat, endCoords.lon]).addTo(map).bindPopup(endCoords.name).openPopup();
-                }
-
-                return { distance: airDistance, naturalFare, time, cities };
+                alert('रूट गणना में विफल: सड़क दूरी प्राप्त करने में असमर्थ। कृपया बाद में पुनः प्रयास करें।');
+                return { distance: 0, naturalFare: 0, time: 0, cities: [] };
             }
-        }
-
-        async function reverseGeocode(lat, lon) {
-            try {
-                const response = await fetch(
-                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
-                );
-                const data = await response.json();
-                return data.address.city || data.address.town || 'अज्ञात शहर';
-            } catch (error) {
-                console.error('रिवर्स जियोकोडिंग त्रुटि:', error);
-                return 'अज्ञात शहर';
-            }
-        }
-
-        function haversineDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
         }
 
         async function listRide() {
@@ -412,7 +276,7 @@
             const customFare = parseInt(document.getElementById('custom-fare').value.trim());
 
             if (!start || !end) {
-                alert('कृपया प्रारंभ और गंतव्य बस स्टैंड भरें');
+                alert('कृपया प्रारंभ और गंतव्य स्थान भरें');
                 return;
             }
 
@@ -474,16 +338,6 @@
             document.getElementById('end').value = '';
             document.getElementById('custom-fare').value = '';
             document.getElementById('fare-estimate').innerHTML = '';
-            if (ensureMap() && routeLayer) {
-                console.log('फॉर्म रीसेट: रूट हटा रहा हूँ...');
-                map.removeLayer(routeLayer);
-                routeLayer = null;
-            }
-            if (map) {
-                map.eachLayer(layer => {
-                    if (layer instanceof L.Marker) map.removeLayer(layer);
-                });
-            }
         }
 
         document.getElementById('reportBtn').addEventListener('click', () => {
@@ -492,7 +346,6 @@
         });
 
         console.log('पेज लोड हो रहा है...');
-        initializeMap(); // पेज लोड पर मैप शुरू करें
     </script>
 </body>
 </html>
