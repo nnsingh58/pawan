@@ -202,6 +202,10 @@
                 console.log('मैप अमान्य है, पुनः प्रारंभ कर रहा हूँ...');
                 initializeMap();
             }
+            if (!map) {
+                console.error('मैप पुनर्जनन विफल');
+                return null;
+            }
             console.log('मैप की वर्तमान स्थिति:', map);
             return map;
         }
@@ -246,8 +250,8 @@
                 return { distance: 0, naturalFare: 0, time: 0, cities: [] };
             }
 
-            const validMap = ensureMap();
-            if (!validMap) {
+            ensureMap();
+            if (!map) {
                 console.error('मैप उपलब्ध नहीं है, ऑपरेशन रद्द कर रहा हूँ');
                 alert('मानचित्र उपलब्ध नहीं है। कृपया पेज रिफ्रेश करें।');
                 return { distance: 0, naturalFare: 0, time: 0, cities: [] };
@@ -267,7 +271,7 @@
                 console.log('मानचित्र की स्थिति जांच: उपलब्ध');
                 if (routeLayer) {
                     console.log('पिछला रूट हटा रहा हूँ...');
-                    validMap.removeLayer(routeLayer);
+                    map.removeLayer(routeLayer);
                     routeLayer = null;
                 }
 
@@ -284,34 +288,31 @@
                 const naturalFare = Math.round(distance * RATE_PER_KM);
                 const time = distance / AVG_SPEED_KMH;
 
-                // मैप पर प्लॉटिंग से पहले जाँच
-                if (!validMap || typeof validMap.addTo !== 'function') {
-                    throw new Error('मैप OSRM कॉल के बाद अमान्य हो गया');
-                }
-                routeLayer = L.polyline(coordinates, { color: '#2563eb', weight: 4 }).addTo(validMap);
-                validMap.fitBounds(routeLayer.getBounds());
+                // OSRM कॉल के बाद मैप की जाँच
+                ensureMap();
+                if (!map) throw new Error('मैप OSRM कॉल के बाद अनुपलब्ध हो गया');
+                routeLayer = L.polyline(coordinates, { color: '#2563eb', weight: 4 }).addTo(map);
+                map.fitBounds(routeLayer.getBounds());
 
                 console.log(`दूरी: ${distance} किमी, प्राकृतिक किराया: ₹${naturalFare}, समय: ${time.toFixed(2)} घंटे`);
 
                 const cities = [];
                 const step = Math.floor(coordinates.length / 5);
                 for (let i = 0; i < coordinates.length; i += step) {
-                    if (!validMap || typeof validMap.addTo !== 'function') {
-                        throw new Error('मैप लूप के दौरान अमान्य हो गया');
-                    }
+                    ensureMap();
+                    if (!map) throw new Error('मैप लूप के दौरान अनुपलब्ध हो गया');
                     if (i === 0) {
-                        L.marker([startCoords.lat, startCoords.lon]).addTo(validMap).bindPopup(startCoords.name).openPopup();
+                        L.marker([startCoords.lat, startCoords.lon]).addTo(map).bindPopup(startCoords.name).openPopup();
                         cities.push(startCoords.name);
                     } else if (i >= coordinates.length - step) {
-                        L.marker([endCoords.lat, endCoords.lon]).addTo(validMap).bindPopup(endCoords.name).openPopup();
+                        L.marker([endCoords.lat, endCoords.lon]).addTo(map).bindPopup(endCoords.name).openPopup();
                         cities.push(endCoords.name);
                     } else {
                         const coord = coordinates[i];
                         const city = await reverseGeocode(coord[0], coord[1]);
-                        if (!validMap || typeof validMap.addTo !== 'function') {
-                            throw new Error('मैप रिवर्स जियोकोडिंग के बाद अमान्य हो गया');
-                        }
-                        L.marker(coord).addTo(validMap).bindPopup(city);
+                        ensureMap();
+                        if (!map) throw new Error('मैप रिवर्स जियोकोडिंग के बाद अनुपलब्ध हो गया');
+                        L.marker(coord).addTo(map).bindPopup(city);
                         cities.push(city);
                     }
                 }
@@ -334,18 +335,19 @@
                 fareEstimate.innerHTML = `अनुमानित किराया (फॉलबैक - हवाई दूरी): ₹${naturalFare} | दूरी: ${airDistance.toFixed(2)} किमी | समय: ${formatTime(time)}<br>रास्ते के शहर: ${cities.join(', ')}<br><small>नोट: सड़क दूरी उपलब्ध नहीं, हवाई दूरी का उपयोग किया गया।</small>`;
                 console.log('फॉलबैक किराया DOM में सेट किया गया:', fareEstimate.innerHTML);
 
-                if (validMap && routeLayer && typeof validMap.removeLayer === 'function') {
+                ensureMap();
+                if (map && routeLayer) {
                     console.log('फॉलबैक में पिछला रूट हटा रहा हूँ...');
-                    validMap.removeLayer(routeLayer);
+                    map.removeLayer(routeLayer);
                     routeLayer = null;
                 }
-                if (validMap && typeof validMap.addTo === 'function') {
+                if (map) {
                     routeLayer = L.polyline([[startCoords.lat, startCoords.lon], [endCoords.lat, endCoords.lon]], 
-                        { color: '#2563eb', weight: 4 }).addTo(validMap);
-                    validMap.fitBounds(routeLayer.getBounds());
+                        { color: '#2563eb', weight: 4 }).addTo(map);
+                    map.fitBounds(routeLayer.getBounds());
 
-                    L.marker([startCoords.lat, startCoords.lon]).addTo(validMap).bindPopup(startCoords.name).openPopup();
-                    L.marker([endCoords.lat, endCoords.lon]).addTo(validMap).bindPopup(endCoords.name).openPopup();
+                    L.marker([startCoords.lat, startCoords.lon]).addTo(map).bindPopup(startCoords.name).openPopup();
+                    L.marker([endCoords.lat, endCoords.lon]).addTo(map).bindPopup(endCoords.name).openPopup();
                 }
 
                 return { distance: airDistance, naturalFare, time, cities };
@@ -466,15 +468,15 @@
             document.getElementById('end').value = '';
             document.getElementById('custom-fare').value = '';
             document.getElementById('fare-estimate').innerHTML = '';
-            const validMap = ensureMap();
-            if (validMap && routeLayer && typeof validMap.removeLayer === 'function') {
+            ensureMap();
+            if (map && routeLayer) {
                 console.log('फॉर्म रीसेट: रूट हटा रहा हूँ...');
-                validMap.removeLayer(routeLayer);
+                map.removeLayer(routeLayer);
                 routeLayer = null;
             }
-            if (validMap && typeof validMap.eachLayer === 'function') {
-                validMap.eachLayer(layer => {
-                    if (layer instanceof L.Marker) validMap.removeLayer(layer);
+            if (map) {
+                map.eachLayer(layer => {
+                    if (layer instanceof L.Marker) map.removeLayer(layer);
                 });
             }
         }
