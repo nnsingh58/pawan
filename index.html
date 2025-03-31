@@ -180,6 +180,7 @@
                 if (map && typeof map.remove === 'function') {
                     console.log('पिछला मैप हटा रहा हूँ...');
                     map.remove();
+                    map = null; // सुनिश्चित करें कि पुराना संदर्भ हट जाए
                 }
                 
                 map = L.map(mapElement).setView([20.5937, 78.9629], 5);
@@ -198,7 +199,7 @@
 
         // मैप की वैधता जाँचें और पुनर्जनन करें
         function ensureMap() {
-            if (!map || typeof map.addTo !== 'function') {
+            if (!map || typeof map.addTo !== 'function' || typeof map.removeLayer !== 'function') {
                 console.log('मैप अमान्य है, पुनः प्रारंभ कर रहा हूँ...');
                 initializeMap();
             }
@@ -240,6 +241,27 @@
             }
         }
 
+        // OSRM API कॉल के लिए रिट्री मैकेनिज्म
+        async function fetchRouteWithRetry(url, retries = 3, delay = 1000) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    console.log('OSRM API प्रतिक्रिया:', data);
+                    if (data.code !== 'Ok') throw new Error('रूट नहीं मिला');
+                    return data;
+                } catch (error) {
+                    console.error(`OSRM API कॉल विफल (प्रयास ${i + 1}/${retries}):`, error);
+                    if (i < retries - 1) {
+                        console.log(`पुनः प्रयास कर रहा हूँ ${delay}ms बाद...`);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    } else {
+                        throw error;
+                    }
+                }
+            }
+        }
+
         async function calculateAndSetFare() {
             const startInput = document.getElementById('start').value.trim();
             const endInput = document.getElementById('end').value.trim();
@@ -276,19 +298,15 @@
                 }
 
                 console.log('OSRM API कॉल कर रहा हूँ...');
-                const response = await fetch(
-                    `https://router.project-osrm.org/route/v1/driving/${startCoords.lon},${startCoords.lat};${endCoords.lon},${endCoords.lat}?overview=full&annotations=nodes`
-                );
-                const data = await response.json();
-                console.log('OSRM API प्रतिक्रिया:', data);
-                if (data.code !== 'Ok') throw new Error('रूट नहीं मिला');
+                const url = `https://router.project-osrm.org/route/v1/driving/${startCoords.lon},${startCoords.lat};${endCoords.lon},${endCoords.lat}?overview=full&annotations=nodes`;
+                const data = await fetchRouteWithRetry(url);
 
                 const coordinates = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
                 const distance = data.routes[0].distance / 1000; // सड़क-आधारित दूरी
                 const naturalFare = Math.round(distance * RATE_PER_KM);
                 const time = distance / AVG_SPEED_KMH;
 
-                // OSRM कॉल के बाद मैप की जाँच
+                // OSRM कॉल के बाद मैप की जाँच और पुनर्जनन
                 ensureMap();
                 if (!map) throw new Error('मैप OSRM कॉल के बाद अनुपलब्ध हो गया');
                 routeLayer = L.polyline(coordinates, { color: '#2563eb', weight: 4 }).addTo(map);
