@@ -171,7 +171,7 @@
         const RATE_PER_KM = 3;
         const AVG_SPEED_KMH = 60;
 
-        // मैप को एक बार शुरू करें
+        // मैप को शुरू करें
         function initializeMap() {
             try {
                 const mapElement = document.getElementById('map');
@@ -188,6 +188,7 @@
                     maxZoom: 18,
                 }).addTo(map);
                 console.log('मानचित्र सफलतापूर्वक लोड हुआ!');
+                console.log('मैप की प्रारंभिक स्थिति:', map);
             } catch (error) {
                 console.error('मानचित्र लोड करने में त्रुटि:', error);
                 map = null;
@@ -195,13 +196,14 @@
             }
         }
 
-        // मैप की वैधता जाँचें बिना पुनर्जनन के
-        function checkMap() {
-            if (!map || typeof map.removeLayer !== 'function' || typeof map.fitBounds !== 'function' || typeof map.addTo !== 'function') {
-                console.error('मैप अमान्य है');
-                return false;
+        // मैप की वैधता जाँचें और पुनर्जनन करें
+        function ensureMap() {
+            if (!map || typeof map.addTo !== 'function') {
+                console.log('मैप अमान्य है, पुनः प्रारंभ कर रहा हूँ...');
+                initializeMap();
             }
-            return true;
+            console.log('मैप की वर्तमान स्थिति:', map);
+            return map;
         }
 
         function formatTime(hours) {
@@ -244,7 +246,8 @@
                 return { distance: 0, naturalFare: 0, time: 0, cities: [] };
             }
 
-            if (!checkMap()) {
+            const validMap = ensureMap();
+            if (!validMap) {
                 console.error('मैप उपलब्ध नहीं है, ऑपरेशन रद्द कर रहा हूँ');
                 alert('मानचित्र उपलब्ध नहीं है। कृपया पेज रिफ्रेश करें।');
                 return { distance: 0, naturalFare: 0, time: 0, cities: [] };
@@ -264,7 +267,7 @@
                 console.log('मानचित्र की स्थिति जांच: उपलब्ध');
                 if (routeLayer) {
                     console.log('पिछला रूट हटा रहा हूँ...');
-                    map.removeLayer(routeLayer);
+                    validMap.removeLayer(routeLayer);
                     routeLayer = null;
                 }
 
@@ -276,34 +279,39 @@
                 console.log('OSRM API प्रतिक्रिया:', data);
                 if (data.code !== 'Ok') throw new Error('रूट नहीं मिला');
 
-                // रूट डेटा पहले प्राप्त करें, फिर मैप पर प्लॉट करें
                 const coordinates = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
                 const distance = data.routes[0].distance / 1000; // सड़क-आधारित दूरी
                 const naturalFare = Math.round(distance * RATE_PER_KM);
                 const time = distance / AVG_SPEED_KMH;
 
-                // मैप पर प्लॉटिंग
-                if (!checkMap()) throw new Error('मैप OSRM कॉल के बाद अमान्य हो गया');
-                routeLayer = L.polyline(coordinates, { color: '#2563eb', weight: 4 }).addTo(map);
-                map.fitBounds(routeLayer.getBounds());
+                // मैप पर प्लॉटिंग से पहले जाँच
+                if (!validMap || typeof validMap.addTo !== 'function') {
+                    throw new Error('मैप OSRM कॉल के बाद अमान्य हो गया');
+                }
+                routeLayer = L.polyline(coordinates, { color: '#2563eb', weight: 4 }).addTo(validMap);
+                validMap.fitBounds(routeLayer.getBounds());
 
                 console.log(`दूरी: ${distance} किमी, प्राकृतिक किराया: ₹${naturalFare}, समय: ${time.toFixed(2)} घंटे`);
 
                 const cities = [];
                 const step = Math.floor(coordinates.length / 5);
                 for (let i = 0; i < coordinates.length; i += step) {
-                    if (!checkMap()) throw new Error('मैप लूप के दौरान अमान्य हो गया');
+                    if (!validMap || typeof validMap.addTo !== 'function') {
+                        throw new Error('मैप लूप के दौरान अमान्य हो गया');
+                    }
                     if (i === 0) {
-                        L.marker([startCoords.lat, startCoords.lon]).addTo(map).bindPopup(startCoords.name).openPopup();
+                        L.marker([startCoords.lat, startCoords.lon]).addTo(validMap).bindPopup(startCoords.name).openPopup();
                         cities.push(startCoords.name);
                     } else if (i >= coordinates.length - step) {
-                        L.marker([endCoords.lat, endCoords.lon]).addTo(map).bindPopup(endCoords.name).openPopup();
+                        L.marker([endCoords.lat, endCoords.lon]).addTo(validMap).bindPopup(endCoords.name).openPopup();
                         cities.push(endCoords.name);
                     } else {
                         const coord = coordinates[i];
                         const city = await reverseGeocode(coord[0], coord[1]);
-                        if (!checkMap()) throw new Error('मैप रिवर्स जियोकोडिंग के बाद अमान्य हो गया');
-                        L.marker(coord).addTo(map).bindPopup(city);
+                        if (!validMap || typeof validMap.addTo !== 'function') {
+                            throw new Error('मैप रिवर्स जियोकोडिंग के बाद अमान्य हो गया');
+                        }
+                        L.marker(coord).addTo(validMap).bindPopup(city);
                         cities.push(city);
                     }
                 }
@@ -326,18 +334,18 @@
                 fareEstimate.innerHTML = `अनुमानित किराया (फॉलबैक - हवाई दूरी): ₹${naturalFare} | दूरी: ${airDistance.toFixed(2)} किमी | समय: ${formatTime(time)}<br>रास्ते के शहर: ${cities.join(', ')}<br><small>नोट: सड़क दूरी उपलब्ध नहीं, हवाई दूरी का उपयोग किया गया।</small>`;
                 console.log('फॉलबैक किराया DOM में सेट किया गया:', fareEstimate.innerHTML);
 
-                if (checkMap() && routeLayer) {
+                if (validMap && routeLayer && typeof validMap.removeLayer === 'function') {
                     console.log('फॉलबैक में पिछला रूट हटा रहा हूँ...');
-                    map.removeLayer(routeLayer);
+                    validMap.removeLayer(routeLayer);
                     routeLayer = null;
                 }
-                if (checkMap()) {
+                if (validMap && typeof validMap.addTo === 'function') {
                     routeLayer = L.polyline([[startCoords.lat, startCoords.lon], [endCoords.lat, endCoords.lon]], 
-                        { color: '#2563eb', weight: 4 }).addTo(map);
-                    map.fitBounds(routeLayer.getBounds());
+                        { color: '#2563eb', weight: 4 }).addTo(validMap);
+                    validMap.fitBounds(routeLayer.getBounds());
 
-                    L.marker([startCoords.lat, startCoords.lon]).addTo(map).bindPopup(startCoords.name).openPopup();
-                    L.marker([endCoords.lat, endCoords.lon]).addTo(map).bindPopup(endCoords.name).openPopup();
+                    L.marker([startCoords.lat, startCoords.lon]).addTo(validMap).bindPopup(startCoords.name).openPopup();
+                    L.marker([endCoords.lat, endCoords.lon]).addTo(validMap).bindPopup(endCoords.name).openPopup();
                 }
 
                 return { distance: airDistance, naturalFare, time, cities };
@@ -458,14 +466,15 @@
             document.getElementById('end').value = '';
             document.getElementById('custom-fare').value = '';
             document.getElementById('fare-estimate').innerHTML = '';
-            if (checkMap() && routeLayer) {
+            const validMap = ensureMap();
+            if (validMap && routeLayer && typeof validMap.removeLayer === 'function') {
                 console.log('फॉर्म रीसेट: रूट हटा रहा हूँ...');
-                map.removeLayer(routeLayer);
+                validMap.removeLayer(routeLayer);
                 routeLayer = null;
             }
-            if (checkMap()) {
-                map.eachLayer(layer => {
-                    if (layer instanceof L.Marker) map.removeLayer(layer);
+            if (validMap && typeof validMap.eachLayer === 'function') {
+                validMap.eachLayer(layer => {
+                    if (layer instanceof L.Marker) validMap.removeLayer(layer);
                 });
             }
         }
