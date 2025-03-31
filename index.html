@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>भारत भ्रमण/दर्शन योजना (बेसिक - सड़क आधारित)</title>
+    <title>भारत भ्रमण/दर्शन योजना (सरल - दूरी आधारित)</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <style>
         * {
@@ -105,13 +105,14 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>भारत भ्रमण/दर्शन योजना (बेसिक - सड़क आधारित)</h1>
+            <h1>भारत भ्रमण/दर्शन योजना (सरल - दूरी आधारित)</h1>
             <p>अपना रूट चुनें और यात्रा शुरू करें</p>
         </div>
 
         <div class="search-box">
-            <input type="text" id="start" placeholder="🚩 प्रारंभ (जैसे: Ghaziabad)">
+            <input type="text" id="start" placeholder="🚩 प्रारंभ (जैसे: Bulandshahr)">
             <input type="text" id="end" placeholder="🏁 गंतव्य (जैसे: Aligarh)">
+            <input type="number" id="distance" placeholder="दूरी (किमी में, जैसे: 50)">
             <button onclick="listRide()" class="list-btn">राइड लिस्ट करें</button>
             <button onclick="searchRide()" class="search-btn">राइड खोजें</button>
         </div>
@@ -131,8 +132,8 @@
         // ग्लोबल वैरिएबल्स
         let rides = [];
         let rideHistory = [];
-        const RATE_PER_KM = 3;
-        const AVG_SPEED_KMH = 60;
+        const RATE_PER_KM = 2.8; // 2.8 रुपये प्रति किमी
+        const AVG_SPEED_KMH = 60; // औसत गति 60 किमी/घंटा
 
         function formatTime(hours) {
             const hrs = Math.floor(hours);
@@ -140,122 +141,40 @@
             return `${hrs} घंटे ${mins} मिनट`;
         }
 
-        async function geocode(location) {
-            try {
-                let query = location;
-                let response = await fetch(
-                    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`
-                );
-                let data = await response.json();
-                if (!data.length) throw new Error(`स्थान नहीं मिला: ${location}`);
-                console.log(`जियोकोडिंग सफल: ${location} -> ${data[0].lat}, ${data[0].lon}`);
-                return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), name: data[0].display_name.split(',')[0] };
-            } catch (error) {
-                console.error('जियोकोडिंग त्रुटि:', error);
-                return null;
-            }
-        }
-
-        async function reverseGeocode(lat, lon) {
-            try {
-                const response = await fetch(
-                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
-                );
-                const data = await response.json();
-                return data.address.city || data.address.town || data.address.village || 'अज्ञात शहर';
-            } catch (error) {
-                console.error('रिवर्स जियोकोडिंग त्रुटि:', error);
-                return 'अज्ञात शहर';
-            }
-        }
-
-        async function fetchRouteWithRetry(url, retries = 3, delay = 1000) {
-            for (let i = 0; i < retries; i++) {
-                try {
-                    const response = await fetch(url);
-                    const data = await response.json();
-                    console.log('OSRM API प्रतिक्रिया:', data);
-                    if (data.code !== 'Ok') throw new Error('रूट नहीं मिला');
-                    return data;
-                } catch (error) {
-                    console.error(`OSRM API कॉल विफल (प्रयास ${i + 1}/${retries}):`, error);
-                    if (i < retries - 1) {
-                        console.log(`पुनः प्रयास कर रहा हूँ ${delay}ms बाद...`);
-                        await new Promise(resolve => setTimeout(resolve, delay));
-                    } else {
-                        throw error;
-                    }
-                }
-            }
-        }
-
-        async function calculateAndSetFare() {
+        function calculateAndSetFare() {
             const startInput = document.getElementById('start').value.trim();
             const endInput = document.getElementById('end').value.trim();
+            const distanceInput = parseFloat(document.getElementById('distance').value.trim());
 
-            if (!startInput || !endInput) {
-                console.log('प्रारंभ या गंतव्य स्थान खाली है');
-                alert('कृपया प्रारंभ और गंतव्य स्थान भरें');
+            if (!startInput || !endInput || !distanceInput || distanceInput <= 0) {
+                console.log('प्रारंभ, गंतव्य, या दूरी खाली/अमान्य है');
+                alert('कृपया प्रारंभ, गंतव्य और मान्य दूरी (किमी में) भरें');
                 return { distance: 0, naturalFare: 0, time: 0, cities: [] };
             }
 
             console.log('किराया और रूट गणना शुरू हो रही है...');
-            const startCoords = await geocode(startInput);
-            const endCoords = await geocode(endInput);
+            const distance = distanceInput;
+            const naturalFare = Math.round(distance * RATE_PER_KM); // 2.8 रुपये/किमी और राउंड फिगर
+            const time = distance / AVG_SPEED_KMH;
+            const cities = [startInput, endInput]; // अभी केवल प्रारंभ और गंतव्य
 
-            if (!startCoords || !endCoords) {
-                console.log('प्रारंभ या गंतव्य स्थान के निर्देशांक प्राप्त करने में विफल');
-                alert('एक या दोनों स्थान नहीं मिले। कृपया मान्य स्थान दर्ज करें।');
-                return { distance: 0, naturalFare: 0, time: 0, cities: [] };
-            }
+            console.log(`दूरी: ${distance} किमी, प्राकृतिक किराया: ₹${naturalFare}, समय: ${time.toFixed(2)} घंटे`);
 
-            try {
-                console.log('OSRM API कॉल कर रहा हूँ...');
-                const url = `https://router.project-osrm.org/route/v1/driving/${startCoords.lon},${startCoords.lat};${endCoords.lon},${endCoords.lat}?overview=full`;
-                const data = await fetchRouteWithRetry(url);
+            const fareEstimate = document.getElementById('fare-estimate');
+            fareEstimate.innerHTML = `अनुमानित किराया: ₹${naturalFare} | दूरी: ${distance.toFixed(2)} किमी | समय: ${formatTime(time)}<br>रास्ते के शहर: ${cities.join(', ')}`;
+            console.log('अनुमानित किराया और शहर DOM में सेट किए गए:', fareEstimate.innerHTML);
 
-                const coordinates = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]); // [lat, lon]
-                const distance = data.routes[0].distance / 1000; // सड़क-आधारित दूरी (किमी में)
-                const naturalFare = Math.round(distance * RATE_PER_KM);
-                const time = distance / AVG_SPEED_KMH;
-
-                console.log(`दूरी: ${distance} किमी, प्राकृतिक किराया: ₹${naturalFare}, समय: ${time.toFixed(2)} घंटे`);
-
-                // बीच के मुख्य शहर निकालना
-                const cities = [];
-                const step = Math.floor(coordinates.length / 5); // रास्ते में 5 बिंदु
-                for (let i = 0; i < coordinates.length; i += step) {
-                    const [lat, lon] = coordinates[i];
-                    if (i === 0) {
-                        cities.push(startCoords.name);
-                    } else if (i >= coordinates.length - step) {
-                        cities.push(endCoords.name);
-                    } else {
-                        const city = await reverseGeocode(lat, lon);
-                        if (!cities.includes(city)) cities.push(city); // डुप्लिकेट हटाएँ
-                    }
-                }
-
-                const fareEstimate = document.getElementById('fare-estimate');
-                fareEstimate.innerHTML = `अनुमानित किराया: ₹${naturalFare} | दूरी: ${distance.toFixed(2)} किमी | समय: ${formatTime(time)}<br>रास्ते के शहर: ${cities.join(', ')}`;
-                console.log('अनुमानित किराया और शहर DOM में सेट किए गए:', fareEstimate.innerHTML);
-
-                return { distance, naturalFare, time, cities };
-            } catch (error) {
-                console.error('रूट गणना में त्रुटि:', error);
-                alert('रूट गणना में विफल: सड़क दूरी प्राप्त करने में असमर्थ। कृपया बाद में पुनः प्रयास करें।');
-                return { distance: 0, naturalFare: 0, time: 0, cities: [] };
-            }
+            return { distance, naturalFare, time, cities };
         }
 
-        async function listRide() {
+        function listRide() {
             console.log('राइड लिस्ट करें क्लिक हुआ');
-            await calculateAndSetFare();
+            calculateAndSetFare();
         }
 
-        async function searchRide() {
+        function searchRide() {
             console.log('राइड खोजें क्लिक हुआ');
-            const result = await calculateAndSetFare();
+            const result = calculateAndSetFare();
             if (result.distance > 0) {
                 const start = document.getElementById('start').value.trim();
                 const end = document.getElementById('end').value.trim();
@@ -270,13 +189,14 @@
             }
         }
 
-        async function publishRide() {
+        function publishRide() {
             const start = document.getElementById('start').value.trim();
             const end = document.getElementById('end').value.trim();
+            const distance = parseFloat(document.getElementById('distance').value.trim());
             const customFare = parseInt(document.getElementById('custom-fare').value.trim());
 
-            if (!start || !end) {
-                alert('कृपया प्रारंभ और गंतव्य स्थान भरें');
+            if (!start || !end || !distance || distance <= 0) {
+                alert('कृपया प्रारंभ, गंतव्य और मान्य दूरी (किमी में) भरें');
                 return;
             }
 
@@ -285,11 +205,10 @@
                 return;
             }
 
-            const result = await calculateAndSetFare();
+            const result = calculateAndSetFare();
             if (result.distance === 0) return;
 
             const naturalFare = result.naturalFare;
-            const distance = result.distance;
             const percentageDiff = naturalFare > 0 ? 
                 Math.round(((customFare - naturalFare) / naturalFare) * 100) : 0;
             const actualFare = percentageDiff < 0 ? 
@@ -336,6 +255,7 @@
         function resetForm() {
             document.getElementById('start').value = '';
             document.getElementById('end').value = '';
+            document.getElementById('distance').value = '';
             document.getElementById('custom-fare').value = '';
             document.getElementById('fare-estimate').innerHTML = '';
         }
