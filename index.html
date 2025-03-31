@@ -180,7 +180,7 @@
                 if (map && typeof map.remove === 'function') {
                     console.log('पिछला मैप हटा रहा हूँ...');
                     map.remove();
-                    map = null; // सुनिश्चित करें कि पुराना संदर्भ हट जाए
+                    map = null; // पुराना संदर्भ हटाएँ
                 }
                 
                 map = L.map(mapElement).setView([20.5937, 78.9629], 5);
@@ -241,7 +241,6 @@
             }
         }
 
-        // OSRM API कॉल के लिए रिट्री मैकेनिज्म
         async function fetchRouteWithRetry(url, retries = 3, delay = 1000) {
             for (let i = 0; i < retries; i++) {
                 try {
@@ -306,9 +305,11 @@
                 const naturalFare = Math.round(distance * RATE_PER_KM);
                 const time = distance / AVG_SPEED_KMH;
 
-                // OSRM कॉल के बाद मैप की जाँच और पुनर्जनन
+                // OSRM कॉल के बाद मैप की जाँच
+                console.log('OSRM कॉल के बाद मैप की स्थिति:', map);
                 ensureMap();
                 if (!map) throw new Error('मैप OSRM कॉल के बाद अनुपलब्ध हो गया');
+                console.log('रूट प्लॉट करने से पहले मैप की स्थिति:', map);
                 routeLayer = L.polyline(coordinates, { color: '#2563eb', weight: 4 }).addTo(map);
                 map.fitBounds(routeLayer.getBounds());
 
@@ -328,6 +329,7 @@
                     } else {
                         const coord = coordinates[i];
                         const city = await reverseGeocode(coord[0], coord[1]);
+                        console.log('रिवर्स जियोकोडिंग के बाद मैप की स्थिति:', map);
                         ensureMap();
                         if (!map) throw new Error('मैप रिवर्स जियोकोडिंग के बाद अनुपलब्ध हो गया');
                         L.marker(coord).addTo(map).bindPopup(city);
