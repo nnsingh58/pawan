@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>भारत भ्रमण/दर्शन योजना</title>
+    <link rel="icon" href="data:,">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { padding: 20px; background: #f0f2f5; min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { text-align: center; padding: 2rem; background: linear-gradient(90deg, #2563eb, #1e40af); color: white; border-radius: 10px; margin-bottom: 2rem; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); animation: slideIn 0.5s ease; }
+        .header h1 { font-size: 28px; }
+        .header p { font-size: 16px; margin-top: 5px; }
+        .search-box { background: white; padding: 1.5rem; border-radius: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); margin-bottom: 2rem; display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+        input { flex: 1; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px; min-width: 250px; transition: border-color 0.3s, box-shadow 0.3s; }
+        input:focus { border-color: #2563eb; box-shadow: 0 0 8px rgba(37, 99, 235, 0.3); outline: none; }
+        button { padding: 12px 2rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; position: relative; overflow: hidden; }
+        button::after { content: ''; position: absolute; top: 50%; left: 50%; width: 0; height: 0; background: rgba(255, 255, 255, 0.3); border-radius: 50%; transform: translate(-50%, -50%); transition: width 0.4s ease, height 0.4s ease; }
+        button:hover::after { width: 200px; height: 200px; }
+        .list-btn { background: linear-gradient(45deg, #00c4cc, #007bff); color: white; }
+        .list-btn:hover { transform: scale(1.05); }
+        .search-btn { background: linear-gradient(45deg, #ff6f61, #ff9f1c); color: white; }
+        .search-btn:hover { transform: scale(1.05); }
+        .danger-btn { background: linear-gradient(45deg, #dc3545, #ff6b6b); color: white; margin: 20px auto; display: block; }
+        .danger-btn:hover { transform: scale(1.05); }
+        #map { height: 500px; width: 100%; border-radius: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); margin-bottom: 2rem; }
+        .card-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .card-container p { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); font-size: 16px; color: #555; transition: transform 0.3s ease; }
+        .card-container p:hover { transform: translateY(-5px); }
+        .fare-estimate { text-align: center; font-size: 18px; color: #007bff; margin-bottom: 1rem; }
+        .fare-details { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .custom-fare { text-align: center; margin-bottom: 2rem; }
+        .custom-fare input { width: 150px; margin-right: 10px; }
+        .custom-fare button { padding: 10px 20px; background: linear-gradient(45deg, #28a745, #20c997); color: white; }
+        .custom-fare button:hover { transform: scale(1.05); }
+        .error-warning { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 10px; text-align: center; }
+        .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes slideIn { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @media (max-width: 768px) { .search-box { flex-direction: column; align-items: stretch; } input { width: 100%; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>भारत भ्रमण/दर्शन योजना</h1>
+            <p>अपना रूट चुनें और यात्रा शुरू करें</p>
+        </div>
+        <div class="search-box">
+            <input type="text" id="start" placeholder="🚩 प्रारंभ बस स्टैंड (जैसे: Ghaziabad Bus Stand)">
+            <input type="text" id="end" placeholder="🏁 गंतव्य बस स्टैंड (जैसे: Meerut Bus Stand)">
+            <button id="listRideBtn" class="list-btn">
+                <span id="listRideText">राइड लिस्ट करें</span>
+                <span id="listRideLoader" class="loading" style="display:none;"></span>
+            </button>
+            <button id="searchRideBtn" class="search-btn">
+                <span id="searchRideText">राइड खोजें</span>
+                <span id="searchRideLoader" class="loading" style="display:none;"></span>
+            </button>
+        </div>
+        <div id="map"></div>
+        <div id="fare-estimate" class="fare-estimate"></div>
+        <div id="fare-details" class="fare-details"></div>
+        <div class="custom-fare">
+            <input type="number" id="custom-fare" placeholder="अपना किराया सेट करें (₹)">
+            <button id="publishRideBtn">
+                <span id="publishRideText">राइड प्रकाशित करें</span>
+                <span id="publishRideLoader" class="loading" style="display:none;"></span>
+            </button>
+        </div>
+        <div id="ride-list" class="card-container"></div>
+        <div class="card-container" id="ride-history" style="margin-top: 2rem;"></div>
+        <button id="reportBtn" class="danger-btn">आपातकाल रिपोर्ट करें</button>
+    </div>
+
+    <!-- Google Maps API को सही ढंग से लोड करें -->
+    <script>
+        (function() {
+            const script = document.createElement('script');
+            script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDh-GVPjb6y9iig7Mzgq0K2Ps2duNSRpKU&libraries=advanced-markers&callback=initMap';
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+        })();
+    </script>
+
+    <script>
+        let map = null;
+        let directionsRenderer = null;
+        let rides = [];
+        let rideHistory = [];
+        const RATE_PER_KM = 3;
+        const AVG_SPEED_KMH = 60;
+        let liveMarker = null;
+
+        // DOM Elements
+        const elements = {
+            startInput: document.getElementById('start'),
+            endInput: document.getElementById('end'),
+            customFareInput: document.getElementById('custom-fare'),
+            fareEstimate: document.getElementById('fare-estimate'),
+            fareDetails: document.getElementById('fare-details'),
+            rideList: document.getElementById('ride-list'),
+            rideHistory: document.getElementById('ride-history'),
+            listRideBtn: document.getElementById('listRideBtn'),
+            searchRideBtn: document.getElementById('searchRideBtn'),
+            publishRideBtn: document.getElementById('publishRideBtn'),
+            reportBtn: document.getElementById('reportBtn')
+        };
+
+        // Google Maps प्रारंभ करें
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 5,
+                center: { lat: 20.5937, lng: 78.9629 }
+            });
+            directionsRenderer = new google.maps.DirectionsRenderer({ map: map });
+            startLiveTracking();
+        }
+
+        // लाइव लोकेशन ट्रैकिंग शुरू करें
+        function startLiveTracking() {
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(
+                    (position) => {
+                        const pos = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        if (liveMarker) {
+                            liveMarker.position = pos;
+                        } else {
+                            liveMarker = new google.maps.marker.AdvancedMarkerElement({
+                                position: pos,
+                                map: map,
+                                title: 'आपकी वर्तमान स्थिति',
+                                content: new google.maps.marker.PinElement({
+                                    background: '#0000FF',
+                                    borderColor: '#0000FF',
+                                    glyphColor: '#FFFFFF'
+                                }).element
+                            });
+                        }
+                        map.setCenter(pos);
+                    },
+                    (error) => {
+                        console.error('लाइव ट्रैकिंग त्रुटि:', error);
+                        showError('लाइव लोकेशन प्राप्त करने में समस्या');
+                    },
+                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                );
+            } else {
+                showError('आपका ब्राउज़र लाइव ट्रैकिंग समर्थन नहीं करता');
+            }
+        }
+
+        // समय प्रारूप
+        function formatTime(hours) {
+            const hrs = Math.floor(hours);
+            const mins = Math.round((hours - hrs) * 60);
+            return `${hrs} घंटे ${mins} मिनट`;
+        }
+
+        // जियोकोडिंग
+        const geocodeCache = {};
+        async function geocode(location) {
+            if (geocodeCache[location]) return geocodeCache[location];
+            try {
+                const query = location.toLowerCase().includes('bus stand') ? location : `${location} Bus Stand`;
+                const geocoder = new google.maps.Geocoder();
+                return new Promise((resolve, reject) => {
+                    geocoder.geocode({ address: query, region: 'IN' }, (results, status) => {
+                        if (status === google.maps.GeocoderStatus.OK && results[0]) {
+                            const result = {
+                                lat: results[0].geometry.location.lat(),
+                                lng: results[0].geometry.location.lng(),
+                                name: results[0].address_components[0].long_name
+                            };
+                            geocodeCache[location] = result;
+                            resolve(result);
+                        } else {
+                            reject(new Error(`स्थान नहीं मिला: ${location}`));
+                        }
+                    });
+                });
+            } catch (error) {
+                console.error('जियोकोडिंग त्रुटि:', error);
+                return null;
+            }
+        }
+
+        // मानचित्र पर मार्ग अपडेट करें
+        async function updateMapRoute(startCoords, endCoords) {
+            const directionsService = new google.maps.DirectionsService();
+            directionsService.route(
+                {
+                    origin: { lat: startCoords.lat, lng: startCoords.lng },
+                    destination: { lat: endCoords.lat, lng: endCoords.lng },
+                    travelMode: google.maps.TravelMode.DRIVING
+                },
+                (result, status) => {
+                    if (status === google.maps.DirectionsStatus.OK) {
+                        directionsRenderer.setDirections(result);
+                    } else {
+                        showError('रूट प्रदर्शन में त्रुटि');
+                    }
+                }
+            );
+        }
+
+        // किराया और रूट गणना
+        async function calculateRoute() {
+            const start = elements.startInput.value.trim();
+            const end = elements.endInput.value.trim();
+            if (!start || !end) {
+                showError('कृपया प्रारंभ और गंतव्य बस स्टैंड भरें');
+                return { distance: 0, naturalFare: 0, time: 0, cities: [], startCoords: null, endCoords: null };
+            }
+
+            toggleLoading(true);
+            try {
+                const startCoords = await geocode(start);
+                const endCoords = await geocode(end);
+                if (!startCoords || !endCoords) throw new Error('स्थान निर्देशांक प्राप्त नहीं हुए');
+
+                const directionsService = new google.maps.DirectionsService();
+                const routePromise = new Promise((resolve, reject) => {
+                    directionsService.route(
+                        {
+                            origin: { lat: startCoords.lat, lng: startCoords.lng },
+                            destination: { lat: endCoords.lat, lng: endCoords.lng },
+                            travelMode: google.maps.TravelMode.DRIVING
+                        },
+                        (result, status) => {
+                            if (status === google.maps.DirectionsStatus.OK) {
+                                resolve(result);
+                            } else {
+                                reject(new Error('रूट गणना विफल'));
+                            }
+                        }
+                    );
+                });
+
+                const result = await routePromise;
+                const route = result.routes[0].legs[0];
+                const roadDistance = route.distance.value / 1000;
+                const naturalFare = Math.round(roadDistance * RATE_PER_KM);
+                const time = roadDistance / AVG_SPEED_KMH;
+
+                return { distance: roadDistance, naturalFare, time, cities: [startCoords.name, endCoords.name], startCoords, endCoords };
+            } catch (error) {
+                console.error('रूट गणना त्रुटि:', error);
+                showError(`रूट गणना विफल: ${error.message}`);
+                return { distance: 0, naturalFare: 0, time: 0, cities: [], startCoords: null, endCoords: null };
+            } finally {
+                toggleLoading(false);
+            }
+        }
+
+        // राइड लिस्ट करें
+        async function listRide() {
+            const result = await calculateRoute();
+            if (result.distance > 0) {
+                updateMapRoute(result.startCoords, result.endCoords);
+                elements.fareEstimate.innerHTML = `
+                    <div>अनुमानित किराया: ₹${result.naturalFare}</div>
+                    <div>दूरी: ${result.distance.toFixed(2)} किमी</div>
+                    <div>समय: ${formatTime(result.time)}</div>
+                    <div>रास्ते के शहर: ${result.cities[0]} से ${result.cities[1]}</div>
+                `;
+                elements.rideList.innerHTML = ''; // राइड लिस्ट खाली करें
+            }
+        }
+
+        // राइड खोजें
+        async function searchRide() {
+            const result = await calculateRoute();
+            if (result.distance > 0) {
+                updateMapRoute(result.startCoords, result.endCoords);
+                elements.fareEstimate.innerHTML = `
+                    <div>अनुमानित किराया: ₹${result.naturalFare}</div>
+                    <div>दूरी: ${result.distance.toFixed(2)} किमी</div>
+                    <div>समय: ${formatTime(result.time)}</div>
+                    <div>रास्ते के शहर: ${result.cities[0]} से ${result.cities[1]}</div>
+                `;
+                const start = elements.startInput.value.trim();
+                const end = elements.endInput.value.trim();
+                const filteredRides = rides.filter(ride => 
+                    ride.start.toLowerCase() === start.toLowerCase() && 
+                    ride.end.toLowerCase() === end.toLowerCase()
+                );
+                displayRides(filteredRides);
+            }
+        }
+
+        // राइड प्रकाशित करें
+        async function publishRide() {
+            const start = elements.startInput.value.trim();
+            const end = elements.endInput.value.trim();
+            const customFare = parseInt(elements.customFareInput.value.trim());
+
+            if (!start || !end) {
+                showError('कृपया प्रारंभ और गंतव्य बस स्टैंड भरें');
+                return;
+            }
+            if (!customFare || customFare <= 0) {
+                showError('कृपया वैध किराया सेट करें');
+                return;
+            }
+
+            const result = await calculateRoute();
+            if (result.distance === 0) return;
+
+            updateMapRoute(result.startCoords, result.endCoords);
+            const naturalFare = result.naturalFare;
+            const percentageDiff = Math.round(((customFare - naturalFare) / naturalFare) * 100);
+            const actualFare = Math.round(naturalFare + (naturalFare * (percentageDiff / 100)));
+
+            elements.fareDetails.innerHTML = `
+                <h3>किराया विवरण</h3>
+                <p>प्राकृतिक किराया (₹${RATE_PER_KM}/किमी): ₹${naturalFare}</p>
+                <p>आपका प्रस्तावित किराया: ₹${customFare} (${percentageDiff >= 0 ? '+' : ''}${percentageDiff}%)</p>
+                <p>अंतिम किराया: ₹${actualFare}</p>
+            `;
+
+            const ride = {
+                start,
+                end,
+                customFare,
+                naturalFare,
+                percentageDiff,
+                actualFare,
+                distance: result.distance,
+                timestamp: new Date().toLocaleString('hi-IN')
+            };
+
+            rides.push(ride);
+            rideHistory.push(ride);
+            displayRides(rides);
+            displayHistory(rideHistory);
+        }
+
+        function toggleLoading(isLoading) {
+            ['listRide', 'searchRide', 'publishRide'].forEach(btn => {
+                const text = document.getElementById(`${btn}Text`);
+                const loader = document.getElementById(`${btn}Loader`);
+                text.style.display = isLoading ? 'none' : 'inline';
+                loader.style.display = isLoading ? 'inline-block' : 'none';
+            });
+        }
+
+        function showError(message) {
+            elements.fareEstimate.innerHTML = `<div class="error-warning">${message}</div>`;
+        }
+
+        function displayRides(ridesToShow) {
+            elements.rideList.innerHTML = ridesToShow.length ?
+                ridesToShow.map(ride => `
+                    <p>
+                        ${ride.start} से ${ride.end}<br>
+                        किराया: ₹${ride.actualFare}<br>
+                        (प्राकृतिक: ₹${ride.naturalFare}, ${ride.percentageDiff >= 0 ? '+' : ''}${ride.percentageDiff}%)<br>
+                        🛣️ सड़क मार्ग
+                    </p>
+                `).join('') :
+                '<p>कोई राइड उपलब्ध नहीं</p>';
+        }
+
+        function displayHistory(history) {
+            elements.rideHistory.innerHTML = history.length ?
+                history.map(ride => `
+                    <p>
+                        ${ride.timestamp}<br>
+                        ${ride.start} से ${ride.end}<br>
+                        किराया: ₹${ride.actualFare}<br>
+                        (प्राकृतिक: ₹${ride.naturalFare}, ${ride.percentageDiff >= 0 ? '+' : ''}${ride.percentageDiff}%)<br>
+                        🛣️ सड़क मार्ग
+                    </p>
+                `).join('') :
+                '<p>कोई राइड इतिहास नहीं</p>';
+        }
+
+        function reportEmergency() {
+            const issue = prompt('आपातकाल का विवरण दें:');
+            if (issue) alert('आपातकाल एडमिन को रिपोर्ट किया गया!');
+        }
+
+        function initApp() {
+            elements.listRideBtn.addEventListener('click', listRide);
+            elements.searchRideBtn.addEventListener('click', searchRide);
+            elements.publishRideBtn.addEventListener('click', publishRide);
+            elements.reportBtn.addEventListener('click', reportEmergency);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initApp();
+        });
+    </script>
+</body>
+</html>
