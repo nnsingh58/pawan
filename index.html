@@ -1,205 +1,82 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="India Travel Planner - Register to plan safe and affordable bus travel across India with fare estimates and emergency support.">
-    <meta name="keywords" content="India Travel, Bus Routes, Fare Estimate, Travel Planner, Safe Travel, Emergency Support, Registration">
-    <meta name="author" content="nnsingh58">
-    <meta name="robots" content="index, follow">
-    <meta name="google-adsense-account" content="ca-pub-9239182778221521">
-    <title>India Travel Planner - Register</title>
-    <link rel="icon" href="data:,">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9239182778221521" crossorigin="anonymous"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        body { background: #f5f7fa; min-height: 100vh; }
-        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
-        .hero { text-align: center; padding: 3rem 1rem; background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white; border-radius: 12px; margin-bottom: 2rem; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15); animation: fadeIn 1s ease; }
-        .hero h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem; }
-        .hero p { font-size: 1.2rem; font-weight: 400; opacity: 0.9; }
-        .registration { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); margin-bottom: 2rem; }
-        .registration h2 { text-align: center; font-size: 1.8rem; color: #1e3a8a; margin-bottom: 1.5rem; }
-        .form-group { margin-bottom: 1.2rem; }
-        .form-group label { display: block; font-size: 0.95rem; color: #374151; margin-bottom: 0.4rem; font-weight: 500; }
-        .form-group input, .form-group select { width: 100%; padding: 0.8rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem; transition: border-color 0.2s; }
-        .form-group input:focus, .form-group select:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
-        .otp-btn, .submit-btn { background: linear-gradient(90deg, #3b82f6, #1e40af); color: white; padding: 0.8rem; border: none; border-radius: 8px; font-size: 1rem; font-weight: 500; cursor: pointer; width: 100%; transition: transform 0.2s, background 0.2s; }
-        .otp-btn:hover, .submit-btn:hover { transform: translateY(-2px); background: linear-gradient(90deg, #2563eb, #1e3a8a); }
-        .submit-btn:disabled { background: #9ca3af; cursor: not-allowed; }
-        .social-buttons { display: flex; flex-wrap: wrap; gap: 0.8rem; justify-content: center; margin-bottom: 1.5rem; }
-        .social-btn { padding: 0.8rem 1.5rem; border-radius: 8px; color: white; font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: transform 0.2s; }
-        .social-btn:hover { transform: translateY(-2px); }
-        .fb { background: #3b5998; }
-        .email { background: #dc2626; }
-        .mobile { background: #14b8a6; }
-        .emergency { text-align: center; margin: 2rem 0; }
-        .emergency-btn { background: linear-gradient(90deg, #ef4444, #b91c1c); color: white; padding: 0.8rem 2rem; border: none; border-radius: 8px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: transform 0.2s; }
-        .emergency-btn:hover { transform: translateY(-2px); }
-        .ad-space { margin: 2rem 0; background: #f9fafb; padding: 1.5rem; text-align: center; border-radius: 12px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); }
-        footer { background: #1e3a8a; color: white; padding: 2rem 1rem; border-radius: 12px; text-align: center; margin-top: 2rem; }
-        footer h3 { font-size: 1.5rem; margin-bottom: 1rem; }
-        footer p { font-size: 0.95rem; margin-bottom: 0.8rem; opacity: 0.9; }
-        footer a { color: #93c5fd; text-decoration: none; font-weight: 500; margin: 0 0.5rem; }
-        footer a:hover { text-decoration: underline; }
-        .footer-links { margin-top: 1rem; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-        @media (max-width: 768px) {
-            .hero h1 { font-size: 1.8rem; }
-            .hero p { font-size: 1rem; }
-            .registration { padding: 1.5rem; }
-            .social-buttons { flex-direction: column; }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>IFSC Code Checker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 400px;
+      margin: auto;
+      background: #f4f4f4;
+    }
+
+    h2 {
+      text-align: center;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      margin-top: 10px;
+      margin-bottom: 20px;
+    }
+
+    .info {
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+
+    .error {
+      color: red;
+      font-weight: bold;
+    }
+
+    .success {
+      color: green;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="hero">
-            <h1>India Travel Planner</h1>
-            <p>Plan your bus journeys with ease, safety, and affordability</p>
-        </div>
+  <h2>🔍 IFSC Code Checker</h2>
+  <input type="text" id="ifscInput" placeholder="Enter IFSC Code (e.g. HDFC0001234)" maxlength="11" />
+  <div id="result" class="info"></div>
 
-        <div class="registration">
-            <h2>Join Now</h2>
-            <div class="social-buttons">
-                <button class="social-btn fb">Login with Facebook</button>
-                <button class="social-btn email">Login with Email</button>
-                <button class="social-btn mobile">Login with Mobile OTP</button>
-            </div>
-            <form id="registrationForm">
-                <div class="form-group">
-                    <label for="mobile">Mobile Number</label>
-                    <input type="text" id="mobile" placeholder="Enter 10-digit mobile number" maxlength="10" required>
-                </div>
-                <button type="button" class="otp-btn" id="sendOtpBtn">Send OTP</button>
-                <div class="form-group" id="otpGroup" style="display: none;">
-                    <label for="otp">Enter OTP</label>
-                    <input type="text" id="otp" placeholder="Enter 6-digit OTP" maxlength="6" required>
-                </div>
-                <div class="form-group" id="nameGroup" style="display: none;">
-                    <label for="name">Name</label>
-                    <input type="text" id="name" placeholder="Enter your name" required>
-                </div>
-                <div class="form-group" id="ageGroup" style="display: none;">
-                    <label for="age">Age</label>
-                    <input type="number" id="age" placeholder="Enter your age" min="18" required>
-                </div>
-                <div class="form-group" id="genderGroup" style="display: none;">
-                    <label for="gender">Gender</label>
-                    <select id="gender" required>
-                        <option value="">Select Gender</option>
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                <button type="submit" class="submit-btn" id="submitBtn" disabled>Register</button>
-            </form>
-        </div>
+  <script>
+    const ifscInput = document.getElementById('ifscInput');
+    const resultBox = document.getElementById('result');
 
-        <div class="emergency">
-            <button class="emergency-btn" onclick="emergencyCall()">Emergency Call</button>
-        </div>
+    ifscInput.addEventListener('input', () => {
+      const code = ifscInput.value.trim().toUpperCase();
 
-        <div class="ad-space">
-            <ins class="adsbygoogle"
-                 style="display:block"
-                 data-ad-client="ca-pub-9239182778221521"
-                 data-ad-slot="1234567890"
-                 data-ad-format="auto"
-                 data-full-width-responsive="true"></ins>
-            <script>
-                 (adsbygoogle = window.adsbygoogle || []).push({});
-            </script>
-        </div>
-
-        <footer>
-            <h3>About India Travel Planner</h3>
-            <p>We make bus travel across India simple and safe with real-time fare estimates, route planning, and emergency support.</p>
-            <p>Contact us at: <a href="mailto:support@indiatravelplanner.com">support@indiatravelplanner.com</a></p>
-            <div class="footer-links">
-                <a href="privacy.html">Privacy Policy</a> |
-                <a href="terms.html">Terms of Service</a> |
-                <a href="#faq">FAQ</a>
-            </div>
-        </footer>
-    </div>
-
-    <script>
-        let otpSent = false;
-        let generatedOtp = null;
-
-        function generateOtp() {
-            return Math.floor(100000 + Math.random() * 900000).toString();
-        }
-
-        document.getElementById('sendOtpBtn').addEventListener('click', function() {
-            const mobile = document.getElementById('mobile').value;
-            if (mobile.length !== 10 || isNaN(mobile)) {
-                alert('Please enter a valid 10-digit mobile number');
-                return;
-            }
-            generatedOtp = generateOtp();
-            alert(`Your OTP is ${generatedOtp} (for demo). In a real app, this will be sent to ${mobile}.`);
-            document.getElementById('otpGroup').style.display = 'block';
-            document.getElementById('otp').focus();
-            otpSent = true;
-        });
-
-        document.getElementById('registrationForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const mobile = document.getElementById('mobile').value;
-            const otp = document.getElementById('otp').value;
-            const name = document.getElementById('name').value;
-            const age = document.getElementById('age').value;
-            const gender = document.getElementById('gender').value;
-
-            if (!otpSent) {
-                alert('Please send OTP first');
-                return;
-            }
-            if (otp !== generatedOtp) {
-                alert('Invalid OTP. Please try again.');
-                return;
-            }
-
-            if (!document.getElementById('nameGroup').style.display || document.getElementById('nameGroup').style.display === 'none') {
-                document.getElementById('nameGroup').style.display = 'block';
-                document.getElementById('ageGroup').style.display = 'block';
-                document.getElementById('genderGroup').style.display = 'block';
-                document.getElementById('name').focus();
-                return;
-            }
-
-            if (!name || !age || !gender) {
-                alert('Please fill all fields');
-                return;
-            }
-
-            console.log({ mobile, name, age, gender });
-            alert('Registration successful!');
-            window.location.href = 'https://nnsingh58.github.io/pawan/travel-planner.html';
-        });
-
-        document.getElementById('otp').addEventListener('input', function() {
-            const otp = this.value;
-            const submitBtn = document.getElementById('submitBtn');
-            submitBtn.disabled = otp.length !== 6 || !otpSent;
-        });
-
-        document.querySelectorAll('.social-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                alert(`Login with ${btn.textContent} is under implementation.`);
-            });
-        });
-
-        function emergencyCall() {
-            const confirmCall = confirm('Do you want to make an emergency call?');
-            if (confirmCall) {
-                alert('Emergency call initiated...');
-            }
-        }
-    </script>
+      if (code.length === 11) {
+        resultBox.innerHTML = "⏳ Checking...";
+        fetch(`https://ifsc.razorpay.com/${code}`)
+          .then(res => {
+            if (!res.ok) throw new Error("Invalid IFSC");
+            return res.json();
+          })
+          .then(data => {
+            resultBox.innerHTML = `
+              <p class="success">✅ Valid IFSC Code</p>
+              <p><strong>Bank:</strong> ${data.BANK}</p>
+              <p><strong>Branch:</strong> ${data.BRANCH}</p>
+              <p><strong>Address:</strong> ${data.ADDRESS}</p>
+            `;
+          })
+          .catch(err => {
+            resultBox.innerHTML = `<p class="error">❌ Invalid IFSC Code</p>`;
+          });
+      } else {
+        resultBox.innerHTML = "";
+      }
+    });
+  </script>
 </body>
 </html>
